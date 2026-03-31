@@ -1,0 +1,28 @@
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
+
+# C/C++ build artifacts
+*.o
+*.obj
+*.lo
+*.la
+*.so
+*.dylib
+*.dll
+*.a
+*.lib
+*.exe
+*.out
+
+# Dependency files
+*.d
+
+# Build directories
+build/
+bin/
+
+# Project executable
+mnist_viewer
