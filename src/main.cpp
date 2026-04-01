@@ -11,8 +11,8 @@ using namespace std;
 
 int main() {
     try {
-        const string labelsPath = "../archive/train-labels.idx1-ubyte"; // train-labels path
-        const string imagesPath = "../archive/train-images.idx3-ubyte"; // train-images path
+        const string labelsPath = "archive/train-labels.idx1-ubyte"; // train-labels path
+        const string imagesPath = "archive/train-images.idx3-ubyte"; // train-images path
 
         uint32_t rows = 0;
         uint32_t cols = 0;

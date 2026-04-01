@@ -23,6 +23,7 @@
 # Build directories
 build/
 bin/
+archive/
 
 # Project executable
 mnist_viewer
