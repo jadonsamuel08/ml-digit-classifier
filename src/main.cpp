@@ -3,9 +3,10 @@
 #include <vector>
 #include <cstdint>
 #include <stdexcept>
-#include <limits>
+#include <algorithm>
 
 #include "mnist_loader.h"
+#include "neural_network.h"
 
 using namespace std;
 
@@ -24,37 +25,60 @@ int main() {
             throw runtime_error("Labels count does not match images count.");
         }
 
-        cout << "Loaded " << images.size() << " training images." << '\n';
-        cout << "Each image size: " << rows << " x " << cols << '\n';
-
-        while (true) {
-            cout << "\nEnter image index (0 to " << (images.size() - 1) << ", -1 to quit): ";
-
-            int index = -1;
-            cin >> index;
-
-            if (!cin) {
-                cin.clear();
-                cin.ignore(numeric_limits<streamsize>::max(), '\n');
-                cout << "Please enter a number." << '\n';
-                continue;
-            }
-
-            if (index == -1) {
-                cout << "Goodbye!" << '\n';
-                break;
-            }
-
-            if (index < 0 || static_cast<size_t>(index) >= images.size()) {
-                cout << "That index is out of range." << '\n';
-                continue;
-            }
-
-            cout << "Label at index " << index << ": "
-                << static_cast<int>(labels[static_cast<size_t>(index)]) << '\n';
-            cout << "Image preview:" << '\n';
-            printImageAscii(images[static_cast<size_t>(index)], rows, cols);
+        const size_t inputSize = static_cast<size_t>(rows * cols);
+        if (inputSize != 784) {
+            throw runtime_error("Expected MNIST images to be 28x28 (784 values).");
         }
+
+        const size_t hiddenSize = 128;
+        const size_t outputSize = 10;
+        const double learningRate = 0.1;
+        const size_t subsetSize = min<size_t>(1000, images.size());
+        const int epochs = 5;
+
+        NeuralNetwork network(inputSize, hiddenSize, outputSize, learningRate);
+
+        cout << "Loaded " << images.size() << " training images." << '\n';
+        cout << "Training on subset size: " << subsetSize << '\n';
+
+        for (int epoch = 1; epoch <= epochs; ++epoch) {
+            double totalLoss = 0.0;
+            size_t correct = 0;
+
+            for (size_t idx = 0; idx < subsetSize; ++idx) {
+                vector<double> input(inputSize, 0.0);
+                for (size_t p = 0; p < inputSize; ++p) {
+                    input[p] = static_cast<double>(images[idx][p]) / 255.0;
+                }
+
+                vector<double> target(outputSize, 0.0);
+                target[labels[idx]] = 1.0;
+
+                const vector<double> output = network.forward(input);
+
+                for (size_t k = 0; k < outputSize; ++k) {
+                    const double diff = output[k] - target[k];
+                    totalLoss += 0.5 * diff * diff;
+                }
+
+                const auto best = max_element(output.begin(), output.end());
+                const uint8_t predicted = static_cast<uint8_t>(distance(output.begin(), best));
+                if (predicted == labels[idx]) {
+                    ++correct;
+                }
+
+                network.backpropagate(input, target);
+            }
+
+            const double avgLoss = totalLoss / static_cast<double>(subsetSize);
+            const double accuracy = (100.0 * static_cast<double>(correct)) / static_cast<double>(subsetSize);
+
+            cout << "Epoch " << epoch
+                 << " | Avg Loss: " << avgLoss
+                 << " | Accuracy: " << accuracy << "%" << '\n';
+        }
+
+        cout << "Training run complete." << '\n';
     } catch (const exception& e) {
         cerr << "Error: " << e.what() << '\n';
         return 1;

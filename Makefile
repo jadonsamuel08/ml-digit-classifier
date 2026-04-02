@@ -1,7 +1,7 @@
 CXX := g++
 CXXFLAGS := -std=c++17 -O2 -Wall -Wextra -pedantic -Iinclude
 TARGET := mnist_viewer
-SRCS := src/main.cpp src/mnist_loader.cpp
+SRCS := src/main.cpp src/mnist_loader.cpp src/neural_network.cpp
 
 .PHONY: all run clean
 
