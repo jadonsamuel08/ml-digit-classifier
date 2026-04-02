@@ -36,12 +36,42 @@ int main() {
         const size_t warmupCheckSize = min<size_t>(1000, images.size());
         const size_t trainSize = images.size();
         const int epochs = 5;
+        const string modelPath = "mnist_model.bin";
 
         NeuralNetwork network(inputSize, hiddenSize, outputSize, learningRate);
 
         cout << "Loaded " << images.size() << " training images." << '\n';
         cout << "Initial sanity check size: " << warmupCheckSize << " (completed in earlier run)" << '\n';
         cout << "Training on full dataset size: " << trainSize << '\n';
+
+        auto evaluateAccuracy = [&](const string& contextLabel) {
+            size_t correct = 0;
+            for (size_t idx = 0; idx < trainSize; ++idx) {
+                vector<double> input(inputSize, 0.0);
+                for (size_t p = 0; p < inputSize; ++p) {
+                    input[p] = static_cast<double>(images[idx][p]) / 255.0;
+                }
+
+                const uint8_t predicted = network.predict(input);
+                if (predicted == labels[idx]) {
+                    ++correct;
+                }
+            }
+
+            const double accuracy = (100.0 * static_cast<double>(correct)) / static_cast<double>(trainSize);
+            cout << "Final Accuracy (" << contextLabel << "): " << accuracy << "%" << '\n';
+        };
+
+        if (network.loadModel(modelPath)) {
+            cout << "Loaded existing model from " << modelPath << ". Skipping retraining." << '\n';
+            evaluateAccuracy("loaded model");
+            cout << "Training run complete." << '\n';
+            return 0;
+        }
+
+        cout << "No saved model found. Starting training..." << '\n';
+
+        double lastEpochAccuracy = 0.0;
 
         for (int epoch = 1; epoch <= epochs; ++epoch) {
             double totalLoss = 0.0;
@@ -74,13 +104,21 @@ int main() {
 
             const double avgLoss = totalLoss / static_cast<double>(trainSize);
             const double accuracy = (100.0 * static_cast<double>(correct)) / static_cast<double>(trainSize);
+            lastEpochAccuracy = accuracy;
 
             cout << "Epoch " << epoch
                 << " | Avg Loss: " << avgLoss
                 << " | Accuracy: " << accuracy << "%" << '\n';
         }
 
+        cout << "Final Accuracy (last epoch): " << lastEpochAccuracy << "%" << '\n';
+
         cout << "Training run complete." << '\n';
+        if (!network.saveModel(modelPath)) {
+            cerr << "Warning: training finished but failed to save model to " << modelPath << '\n';
+        } else {
+            cout << "Saved model to " << modelPath << '\n';
+        }
     } catch (const exception& e) {
         cerr << "Error: " << e.what() << '\n';
         return 1;
