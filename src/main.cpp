@@ -33,19 +33,21 @@ int main() {
         const size_t hiddenSize = 128;
         const size_t outputSize = 10;
         const double learningRate = 0.1;
-        const size_t subsetSize = min<size_t>(1000, images.size());
+        const size_t warmupCheckSize = min<size_t>(1000, images.size());
+        const size_t trainSize = images.size();
         const int epochs = 5;
 
         NeuralNetwork network(inputSize, hiddenSize, outputSize, learningRate);
 
         cout << "Loaded " << images.size() << " training images." << '\n';
-        cout << "Training on subset size: " << subsetSize << '\n';
+        cout << "Initial sanity check size: " << warmupCheckSize << " (completed in earlier run)" << '\n';
+        cout << "Training on full dataset size: " << trainSize << '\n';
 
         for (int epoch = 1; epoch <= epochs; ++epoch) {
             double totalLoss = 0.0;
             size_t correct = 0;
 
-            for (size_t idx = 0; idx < subsetSize; ++idx) {
+            for (size_t idx = 0; idx < trainSize; ++idx) {
                 vector<double> input(inputSize, 0.0);
                 for (size_t p = 0; p < inputSize; ++p) {
                     input[p] = static_cast<double>(images[idx][p]) / 255.0;
@@ -70,12 +72,12 @@ int main() {
                 network.backpropagate(input, target);
             }
 
-            const double avgLoss = totalLoss / static_cast<double>(subsetSize);
-            const double accuracy = (100.0 * static_cast<double>(correct)) / static_cast<double>(subsetSize);
+            const double avgLoss = totalLoss / static_cast<double>(trainSize);
+            const double accuracy = (100.0 * static_cast<double>(correct)) / static_cast<double>(trainSize);
 
             cout << "Epoch " << epoch
-                 << " | Avg Loss: " << avgLoss
-                 << " | Accuracy: " << accuracy << "%" << '\n';
+                << " | Avg Loss: " << avgLoss
+                << " | Accuracy: " << accuracy << "%" << '\n';
         }
 
         cout << "Training run complete." << '\n';
