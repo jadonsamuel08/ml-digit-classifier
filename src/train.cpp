@@ -5,11 +5,33 @@
 #include <stdexcept>
 #include <algorithm>
 #include <filesystem>
+#include <numeric>
+#include <random>
 
 #include "mnist_loader.h"
 #include "neural_net.h"
 
 using namespace std;
+
+vector<double> buildInputFromShiftedImage(const vector<uint8_t>& image, size_t rows, size_t cols, int shiftX, int shiftY) {
+    vector<double> input(rows * cols, 0.0);
+
+    for (size_t y = 0; y < rows; ++y) {
+        for (size_t x = 0; x < cols; ++x) {
+            const int sourceX = static_cast<int>(x) - shiftX;
+            const int sourceY = static_cast<int>(y) - shiftY;
+
+            if (sourceX >= 0 && sourceX < static_cast<int>(cols) &&
+                sourceY >= 0 && sourceY < static_cast<int>(rows)) {
+                const size_t sourceIndex = static_cast<size_t>(sourceY) * cols + static_cast<size_t>(sourceX);
+                const size_t targetIndex = y * cols + x;
+                input[targetIndex] = static_cast<double>(image[sourceIndex]) / 255.0;
+            }
+        }
+    }
+
+    return input;
+}
 
 bool askYesNo(const string& prompt) {
     while (true) {
@@ -59,9 +81,12 @@ int main() {
         const size_t warmupCheckSize = min<size_t>(1000, images.size());
         const size_t trainSize = images.size();
         const int epochs = 5;
+        const int maxShift = 2;
         const string modelPath = "models/mnist_model.bin";
 
         NeuralNetwork network(inputSize, hiddenSize, outputSize, learningRate);
+        mt19937 rng(random_device{}());
+        uniform_int_distribution<int> shiftDist(-maxShift, maxShift);
 
         cout << "Loaded " << images.size() << " training images." << '\n';
         cout << "Initial sanity check size: " << warmupCheckSize << " (completed in earlier run)" << '\n';
@@ -115,15 +140,17 @@ int main() {
         for (int epoch = 1; epoch <= epochs; ++epoch) {
             double totalLoss = 0.0;
             size_t correct = 0;
+            vector<size_t> order(trainSize);
+            iota(order.begin(), order.end(), 0);
+            shuffle(order.begin(), order.end(), rng);
 
-            for (size_t idx = 0; idx < trainSize; ++idx) {
-                vector<double> input(inputSize, 0.0);
-                for (size_t p = 0; p < inputSize; ++p) {
-                    input[p] = static_cast<double>(images[idx][p]) / 255.0;
-                }
+            for (size_t sampleIndex : order) {
+                const int shiftX = shiftDist(rng);
+                const int shiftY = shiftDist(rng);
+                vector<double> input = buildInputFromShiftedImage(images[sampleIndex], rows, cols, shiftX, shiftY);
 
                 vector<double> target(outputSize, 0.0);
-                target[labels[idx]] = 1.0;
+                target[labels[sampleIndex]] = 1.0;
 
                 const vector<double> output = network.forward(input);
 
@@ -134,7 +161,7 @@ int main() {
 
                 const auto best = max_element(output.begin(), output.end());
                 const uint8_t predicted = static_cast<uint8_t>(distance(output.begin(), best));
-                if (predicted == labels[idx]) {
+                if (predicted == labels[sampleIndex]) {
                     ++correct;
                 }
 

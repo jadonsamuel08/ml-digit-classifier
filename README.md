@@ -10,8 +10,10 @@ The goal is to learn how a neural network works under the hood, without using an
 - Builds a small neural network from scratch
 - First verified training on a small subset (1000 images)
 - Now trains on the full training dataset
+- Shuffles training data each epoch and applies small random shifts for robustness
 - Uses forward propagation + backpropagation
 - Prints loss and accuracy each epoch
+- Reports per-digit accuracy and a confusion matrix during evaluation
 
 ## Network shape
 
@@ -82,12 +84,21 @@ To evaluate on the MNIST test set (the remaining data):
 make test
 ```
 
+To open the drawing GUI:
+
+```bash
+make gui
+```
+
+The GUI preprocesses hand-drawn digits before prediction by cropping, resizing, centering, and smoothing them so they more closely match MNIST inputs.
+
 ## Latest results
 
 - Full training run: 5 epochs on 60,000 training images
 - Test set evaluation: 10,000 images from `t10k-*` files
-- Observed test accuracy: **96.64%**
-- Observed test average loss: **0.0310317**
+- Observed test accuracy: **96.7%**
+- Observed test average loss: **0.0303158**
+- Digit 8 accuracy: **94.97%**
 
 This is a strong result for a first from-scratch network and confirms that the model generalizes well beyond the training data.
 
@@ -97,10 +108,12 @@ This is a strong result for a first from-scratch network and confirms that the m
 - Epochs: `5`
 - Initial verification run: `1000` images
 - Current run: full training set (`60000` images from `train-*` files)
+- Training samples are shuffled each epoch
+- Training includes small random pixel shifts to improve robustness to handwriting variation
 - Activation: sigmoid
 - Loss: mean squared error style accumulation (`0.5 * (output - target)^2`)
 
-The project now also includes a separate test evaluator in `src/test.cpp` that loads the saved model and reports accuracy on the test set.
+The project now also includes a separate test evaluator in `src/test.cpp` that loads the saved model and reports overall accuracy, per-digit accuracy, and a confusion matrix.
 
 Starting with 1000 images was used as a beginner-friendly sanity check. After confirming forward and backprop worked, training was scaled to the full dataset.
 
@@ -110,8 +123,8 @@ Starting with 1000 images was used as a beginner-friendly sanity check. After co
 - `src/train.cpp`: training loop and data preparation
 - `src/mnist_loader.cpp`: reads MNIST binary files
 - `src/neural_net.cpp`: forward pass and backprop logic
-- `src/test.cpp`: test-set evaluation for a saved model
-- `src/draw_gui.cpp`: placeholder for a future Raylib GUI
+- `src/test.cpp`: test-set evaluation for a saved model with per-digit metrics
+- `src/draw_gui.cpp`: Raylib digit-drawing GUI with MNIST-style preprocessing
 - `include/neural_net.h`: neural network class definition
 - `data/`: MNIST data files
 - `models/`: saved trained model artifacts
@@ -120,6 +133,5 @@ Starting with 1000 images was used as a beginner-friendly sanity check. After co
 
 After this works reliably, good next steps are:
 
-- Shuffle training data each epoch
 - Train with mini-batches
 - Try ReLU + softmax later for better performance
